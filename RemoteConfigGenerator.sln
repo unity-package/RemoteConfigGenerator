@@ -1,0 +1,29 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SourceGenerator", "SourceGenerator", "{60A36090-410B-2CE6-A945-D386B20A85B8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RemoteConfigGenerator", "SourceGenerator\RemoteConfigGenerator.csproj", "{BA2A000F-6C04-74F0-DB78-5183699C3D8E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BA2A000F-6C04-74F0-DB78-5183699C3D8E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA2A000F-6C04-74F0-DB78-5183699C3D8E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA2A000F-6C04-74F0-DB78-5183699C3D8E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA2A000F-6C04-74F0-DB78-5183699C3D8E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BA2A000F-6C04-74F0-DB78-5183699C3D8E} = {60A36090-410B-2CE6-A945-D386B20A85B8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BAA2DA1C-F288-4F7A-80B6-E16370F717A1}
+	EndGlobalSection
+EndGlobal
