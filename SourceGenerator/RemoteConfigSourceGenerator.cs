@@ -563,9 +563,18 @@ namespace RemoteConfigGenerator
 
         private object GetAttributePropertyValue(AttributeData attribute, string propertyName)
         {
-            var namedArg = attribute.NamedArguments.FirstOrDefault(na => na.Key == propertyName);
-            if (namedArg.Key != null)
-                return namedArg.Value.Value;
+            // Check named arguments (e.g., Key = "value")
+            foreach (var namedArg in attribute.NamedArguments)
+            {
+                if (namedArg.Key == propertyName)
+                    return namedArg.Value.Value;
+            }
+
+            // Check constructor arguments for "Key" property specifically
+            if (propertyName == "Key" && attribute.ConstructorArguments.Length > 0)
+            {
+                return attribute.ConstructorArguments[0].Value;
+            }
 
             return null;
         }
