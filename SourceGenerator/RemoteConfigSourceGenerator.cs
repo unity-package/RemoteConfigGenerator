@@ -22,68 +22,47 @@ namespace RemoteConfigGenerator
 
         public void Execute(GeneratorExecutionContext context)
         {
-            // ✅ QUAN TRỌNG: Thêm attributes vào compilation trước
-            // Giống như BuilderGenerator - đây là điều thiếu!
+            // ✅ Generate attributes first so they're available for user code
             context.AddSource("RemoteConfigAttributes.g.cs", SourceText.From(@"
 using System;
 
 namespace RemoteConfigGenerator
 {
-    /// <summary>
-    /// Marks a class as containing remote config fields
-    /// </summary>
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public sealed class RemoteConfigDataAttribute : Attribute
     {
-        /// <summary>
-        /// Prefix for storage keys (default: ""rc_"")
-        /// </summary>
         public string PrefsPrefix { get; set; } = ""rc_"";
     }
 
-    /// <summary>
-    /// Interface for custom storage implementation
-    /// </summary>
     public interface IRemoteConfigStorage
     {
         void SetInt(string key, int value);
         int GetInt(string key, int defaultValue);
-        
+
         void SetFloat(string key, float value);
         float GetFloat(string key, float defaultValue);
-        
+
         void SetString(string key, string value);
         string GetString(string key, string defaultValue);
-        
+
         void SetBool(string key, bool value);
         bool GetBool(string key, bool defaultValue);
-        
+
         void SetLong(string key, long value);
         long GetLong(string key, long defaultValue);
-        
+
         void Save();
     }
 
-    /// <summary>
-    /// Marks a field/property to be included in remote config generation
-    /// </summary>
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property, AllowMultiple = false)]
     public sealed class RemoteConfigFieldAttribute : Attribute
     {
-        /// <summary>
-        /// Custom key name for Firebase/JSON (optional)
-        /// </summary>
         public string Key { get; set; }
-
-        /// <summary>
-        /// If true, this field will be saved to PlayerPrefs (default: true)
-        /// </summary>
         public bool PersistToPrefs { get; set; } = true;
-
-        /// <summary>
-        /// If true, this field will be synced from Firebase (default: true)
-        /// </summary>
         public bool SyncFromRemote { get; set; } = true;
+
+        public RemoteConfigFieldAttribute() { }
+        public RemoteConfigFieldAttribute(string key) { Key = key; }
     }
 }
 ", Encoding.UTF8));
@@ -192,9 +171,19 @@ namespace RemoteConfigGenerator
                     // Override with attribute values if present
                     if (attribute != null)
                     {
+                        // ✅ FIX: Try semantic model first, then fallback to syntax parsing
                         var customKey = GetAttributePropertyValue(attribute, "Key") as string;
                         if (!string.IsNullOrEmpty(customKey))
+                        {
                             configMember.Key = customKey;
+                        }
+                        else
+                        {
+                            // Fallback: Parse syntax directly (works even if attribute is generated in same pass)
+                            var syntaxKey = GetAttributeKeyFromSyntax(member);
+                            if (!string.IsNullOrEmpty(syntaxKey))
+                                configMember.Key = syntaxKey;
+                        }
 
                         var persistToPrefs = GetAttributePropertyValue(attribute, "PersistToPrefs") as bool?;
                         if (persistToPrefs.HasValue)
@@ -574,6 +563,75 @@ namespace RemoteConfigGenerator
             if (propertyName == "Key" && attribute.ConstructorArguments.Length > 0)
             {
                 return attribute.ConstructorArguments[0].Value;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Parse attribute Key directly from syntax tree (fallback when semantic model doesn't work)
+        /// Handles: [RemoteConfigField(Key = "VALUE")] and [RemoteConfigField("VALUE")]
+        /// </summary>
+        private string GetAttributeKeyFromSyntax(ISymbol member)
+        {
+            foreach (var syntaxRef in member.DeclaringSyntaxReferences)
+            {
+                var syntax = syntaxRef.GetSyntax();
+
+                // Find attribute list - IMPORTANT: Fields use VariableDeclaratorSyntax
+                SyntaxList<AttributeListSyntax> attributeLists = default;
+
+                // ✅ FIX: For fields, the syntax is VariableDeclaratorSyntax, need to go up to FieldDeclarationSyntax
+                if (syntax is VariableDeclaratorSyntax variableDeclarator)
+                {
+                    // Go up: VariableDeclaratorSyntax -> VariableDeclarationSyntax -> FieldDeclarationSyntax
+                    if (variableDeclarator.Parent?.Parent is FieldDeclarationSyntax fieldDecl)
+                    {
+                        attributeLists = fieldDecl.AttributeLists;
+                    }
+                }
+                else if (syntax is FieldDeclarationSyntax fieldSyntax)
+                {
+                    attributeLists = fieldSyntax.AttributeLists;
+                }
+                else if (syntax is PropertyDeclarationSyntax propertySyntax)
+                {
+                    attributeLists = propertySyntax.AttributeLists;
+                }
+
+                // Parse each attribute
+                foreach (var attributeList in attributeLists)
+                {
+                    foreach (var attr in attributeList.Attributes)
+                    {
+                        var attrName = attr.Name.ToString();
+                        if (attrName == "RemoteConfigField" || attrName == "RemoteConfigFieldAttribute")
+                        {
+                            if (attr.ArgumentList != null)
+                            {
+                                foreach (var arg in attr.ArgumentList.Arguments)
+                                {
+                                    // Case 1: Named argument [RemoteConfigField(Key = "VALUE")]
+                                    if (arg.NameEquals != null && arg.NameEquals.Name.ToString() == "Key")
+                                    {
+                                        // ✅ FIX: Use LiteralExpressionSyntax to get actual value without quotes
+                                        if (arg.Expression is LiteralExpressionSyntax literal)
+                                        {
+                                            return literal.Token.ValueText;
+                                        }
+                                        // Fallback: trim quotes manually
+                                        return arg.Expression.ToString().Trim('"');
+                                    }
+                                    // Case 2: Constructor argument [RemoteConfigField("VALUE")]
+                                    else if (arg.NameEquals == null && arg.Expression is LiteralExpressionSyntax literal)
+                                    {
+                                        return literal.Token.ValueText;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             return null;
