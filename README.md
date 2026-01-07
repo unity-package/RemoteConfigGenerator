@@ -34,6 +34,7 @@ A powerful C# Source Generator for Unity that automatically generates optimized 
 ```
 Dependencies: Cài NuGet For Unity => Install Microsoft.CodeAnalysis.CSharp
 ```
+Lấy `SourceGenerator.dll` đính kèm trong [release](https://github.com/unity-package/RemoteConfigGenerator/releases)
 
 1. Copy file `SourceGenerator.dll` vào thư mục `Assets/Plugins/` trong Unity project
 2. Chọn DLL trong Unity Inspector
@@ -135,6 +136,8 @@ public class GameBootstrap : MonoBehaviour
 ```
 
 ## 🔨 Building the DLL
+
+Nếu bạn không dùng `SourceGenerator.dll` đính kèm trong bản [release](https://github.com/unity-package/RemoteConfigGenerator/releases) thì bạn có thể tự build hoặc sửa lại code theo ý muốn rồi build lại.
 
 ### Prerequisites
 
